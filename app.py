@@ -92,60 +92,67 @@ def style_demo_axis(ax, title):
         spine.set_color("#00ffea")
         spine.set_alpha(0.55)
 
-def generate_demo_graphs():
+def generate_demo_graphs(
+    continuous_level=1.0,
+    jump_level=3.0,
+    essential_level=1.0,
+    stable_ping_level=1.2,
+    spike_level=200,
+    unstable_level=45,
+):
     rng = np.random.default_rng(42)
     figures = []
 
     x = np.linspace(-3, 3, 300)
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
-    ax.plot(x, x ** 2, color="#00ffea", linewidth=2.4)
+    ax.plot(x, continuous_level * x ** 2, color="#00ffea", linewidth=2.4)
     style_demo_axis(ax, "Continua")
-    figures.append(("Continua", fig))
+    figures.append(("Continua", fig, f"Funzione regolare senza interruzioni: parabola con intensità {continuous_level:g}."))
 
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
     ax.plot([-3, 0], [1, 1], color="#00ffea", linewidth=2.4)
-    ax.plot([0, 3], [3, 3], color="#ff0055", linewidth=2.4)
+    ax.plot([0, 3], [jump_level, jump_level], color="#ff0055", linewidth=2.4)
     ax.scatter([0], [1], facecolors="#070a14", edgecolors="#00ffea", s=55, zorder=3)
-    ax.scatter([0], [3], color="#ff0055", s=55, zorder=3)
+    ax.scatter([0], [jump_level], color="#ff0055", s=55, zorder=3)
     ax.set_xlim(-3, 3)
-    ax.set_ylim(0, 4)
+    ax.set_ylim(0, jump_level + 1)
     style_demo_axis(ax, "Salto")
-    figures.append(("Salto", fig))
+    figures.append(("Salto", fig, f"Discontinuità improvvisa: il valore passa da 1 a {jump_level:g}."))
 
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
     x_left = np.linspace(-3, -0.12, 240)
     x_right = np.linspace(0.12, 3, 240)
-    ax.plot(x_left, 1 / x_left, color="#00ffea", linewidth=2.2)
-    ax.plot(x_right, 1 / x_right, color="#ff0055", linewidth=2.2)
+    ax.plot(x_left, essential_level / x_left, color="#00ffea", linewidth=2.2)
+    ax.plot(x_right, essential_level / x_right, color="#ff0055", linewidth=2.2)
     ax.axvline(0, color="#ffff00", linestyle="--", linewidth=1.4, alpha=0.9)
     ax.set_xlim(-3, 3)
-    ax.set_ylim(-8, 8)
+    ax.set_ylim(-8 * essential_level, 8 * essential_level)
     style_demo_axis(ax, "Essenziale")
-    figures.append(("Essenziale", fig))
+    figures.append(("Essenziale", fig, f"Asintoto verticale: intensità del polo pari a {essential_level:g}."))
 
     t = np.arange(60)
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
-    ax.plot(t, 20 + rng.normal(0, 1.2, size=t.size), color="#00ffea", linewidth=1.9)
+    ax.plot(t, 20 + rng.normal(0, stable_ping_level, size=t.size), color="#00ffea", linewidth=1.9)
     ax.set_ylim(0, 230)
     style_demo_axis(ax, "Ping stabile")
-    figures.append(("Ping stabile", fig))
+    figures.append(("Ping stabile", fig, f"Latenza regolare con oscillazioni di circa {stable_ping_level:g} ms."))
 
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
     lag_spike = 20 + rng.normal(0, 1.4, size=t.size)
-    lag_spike[32] = 200
+    lag_spike[32] = spike_level
     ax.plot(t, lag_spike, color="#00ffea", linewidth=1.9)
-    ax.scatter([32], [200], color="#ff0055", s=48, zorder=3)
-    ax.set_ylim(0, 230)
+    ax.scatter([32], [spike_level], color="#ff0055", s=48, zorder=3)
+    ax.set_ylim(0, spike_level + 30)
     style_demo_axis(ax, "Lag spike")
-    figures.append(("Lag spike", fig))
+    figures.append(("Lag spike", fig, f"Connessione quasi stabile con un picco isolato fino a {spike_level} ms."))
 
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
-    ax.plot(t, np.clip(rng.normal(80, 45, size=t.size), 5, 220), color="#ff0055", linewidth=1.9)
+    ax.plot(t, np.clip(rng.normal(80, unstable_level, size=t.size), 5, 220), color="#ff0055", linewidth=1.9)
     ax.set_ylim(0, 230)
     style_demo_axis(ax, "Instabile")
-    figures.append(("Instabile", fig))
+    figures.append(("Instabile", fig, f"Latenza ad alta variabilità: deviazione impostata a {unstable_level} ms."))
 
-    for _, fig in figures:
+    for _, fig, _ in figures:
         fig.tight_layout(pad=1.2)
 
     return figures
@@ -310,13 +317,30 @@ elif page == "📊 Demo grafici":
     st.title("📊 Demo grafici")
     st.markdown("Visualizzazione rapida di continuità, discontinuità e pattern di latenza.")
 
-    demo_figures = generate_demo_graphs()
-    for row_start in range(0, len(demo_figures), 3):
+    slider_specs = [
+        ("continuous_level", "Intensità continua", 0.5, 3.0, 1.0, 0.25),
+        ("jump_level", "Ampiezza salto", 2.0, 8.0, 3.0, 0.5),
+        ("essential_level", "Intensità asintoto", 0.5, 3.0, 1.0, 0.25),
+        ("stable_ping_level", "Oscillazione ping stabile", 0.2, 5.0, 1.2, 0.2),
+        ("spike_level", "Intensità lag spike", 60, 300, 200, 10),
+        ("unstable_level", "Variabilità instabile", 10, 90, 45, 5),
+    ]
+    demo_levels = {}
+    render_slots = []
+
+    for row_start in range(0, len(slider_specs), 3):
         cols = st.columns(3)
-        for col, (_, fig) in zip(cols, demo_figures[row_start:row_start + 3]):
+        for col, slider_spec in zip(cols, slider_specs[row_start:row_start + 3]):
+            key, label, min_value, max_value, default_value, step = slider_spec
             with col:
-                st.pyplot(fig, width="stretch")
-                plt.close(fig)
+                demo_levels[key] = st.slider(label, min_value, max_value, default_value, step, key=key)
+                render_slots.append((st.empty(), st.empty()))
+
+    demo_figures = generate_demo_graphs(**demo_levels)
+    for (plot_slot, caption_slot), (_, fig, caption) in zip(render_slots, demo_figures):
+        plot_slot.pyplot(fig, width="stretch")
+        caption_slot.caption(caption)
+        plt.close(fig)
 
 # ==========================================
 # PAGINA 4: MANUALE OPERATIVO
