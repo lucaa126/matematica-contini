@@ -1,5 +1,6 @@
 import streamlit as st
 import numpy as np
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import pandas as pd
 import time
@@ -80,10 +81,79 @@ def generate_logs(attack_type, target_ip, gradient_max, mitigation):
             logs.append({"Time": now, "Component": "MATH_ENGINE", "Event": f"Derivata parziale critica: ||∇S|| = {gradient_max:.2f}", "Status": "CRITICAL"})
     return pd.DataFrame(logs)
 
+def style_demo_axis(ax, title):
+    fig = ax.figure
+    fig.patch.set_facecolor("#03050a")
+    ax.set_facecolor("#070a14")
+    ax.set_title(title, color="#00ffea", fontfamily="monospace", fontsize=12, pad=10)
+    ax.tick_params(colors="#ccd6f6", labelsize=8)
+    ax.grid(True, color="#1a2a42", linewidth=0.7, alpha=0.8)
+    for spine in ax.spines.values():
+        spine.set_color("#00ffea")
+        spine.set_alpha(0.55)
+
+def generate_demo_graphs():
+    rng = np.random.default_rng(42)
+    figures = []
+
+    x = np.linspace(-3, 3, 300)
+    fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    ax.plot(x, x ** 2, color="#00ffea", linewidth=2.4)
+    style_demo_axis(ax, "Continua")
+    figures.append(("Continua", fig))
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    ax.plot([-3, 0], [1, 1], color="#00ffea", linewidth=2.4)
+    ax.plot([0, 3], [3, 3], color="#ff0055", linewidth=2.4)
+    ax.scatter([0], [1], facecolors="#070a14", edgecolors="#00ffea", s=55, zorder=3)
+    ax.scatter([0], [3], color="#ff0055", s=55, zorder=3)
+    ax.set_xlim(-3, 3)
+    ax.set_ylim(0, 4)
+    style_demo_axis(ax, "Salto")
+    figures.append(("Salto", fig))
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    x_left = np.linspace(-3, -0.12, 240)
+    x_right = np.linspace(0.12, 3, 240)
+    ax.plot(x_left, 1 / x_left, color="#00ffea", linewidth=2.2)
+    ax.plot(x_right, 1 / x_right, color="#ff0055", linewidth=2.2)
+    ax.axvline(0, color="#ffff00", linestyle="--", linewidth=1.4, alpha=0.9)
+    ax.set_xlim(-3, 3)
+    ax.set_ylim(-8, 8)
+    style_demo_axis(ax, "Essenziale")
+    figures.append(("Essenziale", fig))
+
+    t = np.arange(60)
+    fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    ax.plot(t, 20 + rng.normal(0, 1.2, size=t.size), color="#00ffea", linewidth=1.9)
+    ax.set_ylim(0, 230)
+    style_demo_axis(ax, "Ping stabile")
+    figures.append(("Ping stabile", fig))
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    lag_spike = 20 + rng.normal(0, 1.4, size=t.size)
+    lag_spike[32] = 200
+    ax.plot(t, lag_spike, color="#00ffea", linewidth=1.9)
+    ax.scatter([32], [200], color="#ff0055", s=48, zorder=3)
+    ax.set_ylim(0, 230)
+    style_demo_axis(ax, "Lag spike")
+    figures.append(("Lag spike", fig))
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    ax.plot(t, np.clip(rng.normal(80, 45, size=t.size), 5, 220), color="#ff0055", linewidth=1.9)
+    ax.set_ylim(0, 230)
+    style_demo_axis(ax, "Instabile")
+    figures.append(("Instabile", fig))
+
+    for _, fig in figures:
+        fig.tight_layout(pad=1.2)
+
+    return figures
+
 # --- NAVIGAZIONE ---
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/120px-Python-logo-notext.svg.png", width=40)
 st.sidebar.title("NEXUS OS")
-page = st.sidebar.radio("Moduli di Sistema", ["📡 Scanner IDS Live", "📐 Libreria Matematica", "🛡️ Manuale Operativo Cyber"])
+page = st.sidebar.radio("Moduli di Sistema", ["📡 Scanner IDS Live", "📐 Libreria Matematica", "📊 Demo grafici", "🛡️ Manuale Operativo Cyber"])
 st.sidebar.divider()
 
 # ==========================================
@@ -234,7 +304,22 @@ elif page == "📐 Libreria Matematica":
     st.latex(r"\lim_{t \to t_0} f(t) = L \quad \text{ma} \quad f(t_0) \neq L")
 
 # ==========================================
-# PAGINA 3: MANUALE OPERATIVO
+# PAGINA 3: DEMO GRAFICI
+# ==========================================
+elif page == "📊 Demo grafici":
+    st.title("📊 Demo grafici")
+    st.markdown("Visualizzazione rapida di continuità, discontinuità e pattern di latenza.")
+
+    demo_figures = generate_demo_graphs()
+    for row_start in range(0, len(demo_figures), 3):
+        cols = st.columns(3)
+        for col, (_, fig) in zip(cols, demo_figures[row_start:row_start + 3]):
+            with col:
+                st.pyplot(fig, width="stretch")
+                plt.close(fig)
+
+# ==========================================
+# PAGINA 4: MANUALE OPERATIVO
 # ==========================================
 elif page == "🛡️ Manuale Operativo Cyber":
     st.title("🛡️ Mappatura Minacce")
